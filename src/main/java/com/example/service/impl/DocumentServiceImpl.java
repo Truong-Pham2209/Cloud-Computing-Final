@@ -3,7 +3,9 @@ package com.example.service.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.dto.DocumentDTO;
+import com.example.dto.DocumentResponse;
 import com.example.dto.FileDTO;
 import com.example.dto.FileType;
 import com.example.entity.DocumentEntity;
@@ -47,7 +50,25 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 	private static final Set<String> FILE_EXTENSIONS = Set.of("txt", "text", "docx", "pdf", "ppt", "pptx", "zip", "rar", "mp4",
-			"mkv", "avi", "jpg", "jpeg", "png", "svg");
+			"mkv", "avi", "jpg", "jpeg", "png");
+	private static final Map<String, String> MIME_TYPES = new HashMap<>();
+	static {
+	    MIME_TYPES.put("txt", "text/plain");
+	    MIME_TYPES.put("text", "text/plain");
+	    MIME_TYPES.put("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+	    MIME_TYPES.put("pdf", "application/pdf");
+	    MIME_TYPES.put("ppt", "application/vnd.ms-powerpoint");
+	    MIME_TYPES.put("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+	    MIME_TYPES.put("zip", "application/zip");
+	    MIME_TYPES.put("rar", "application/vnd.rar");
+	    MIME_TYPES.put("mp4", "video/mp4");
+	    MIME_TYPES.put("mkv", "video/x-matroska");
+	    MIME_TYPES.put("avi", "video/x-msvideo");
+	    MIME_TYPES.put("jpg", "image/jpeg");
+	    MIME_TYPES.put("jpeg", "image/jpeg");
+	    MIME_TYPES.put("png", "image/png");
+	}
+	
 	private static final String BUCKET_NAME = "spring-boot--documents-app";
 
 //	@formatter:off
@@ -71,7 +92,7 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public byte[] getFile(String fileId, boolean isPublicFile) {
+	public DocumentResponse getFile(String fileId, boolean isPublicFile) {
 		try {			
 			if(!isPublicFile) {
 				if(!isLoggedIn())
@@ -97,9 +118,10 @@ public class DocumentServiceImpl implements DocumentService {
 					.bucket(BUCKET_NAME)
 					.key(fileKey)
 					.build();
+			String mime = MIME_TYPES.get(document.getFileExtension());
 
 			var s3Object = s3Client.getObject(getObjectRequest);
-			return s3Object.readAllBytes();
+			return new DocumentResponse(mime, s3Object.readAllBytes());
 		} catch (SdkException | IOException e) {
 			log.error("Failed to fetch file with ID: {} from S3", fileId, e);
 			throw new RuntimeException("Failed to get file from S3", e);
@@ -124,9 +146,11 @@ public class DocumentServiceImpl implements DocumentService {
 	public DocumentDTO saveFile(FileDTO fileDTO) {
 		validateFile(fileDTO.getMultipartFile());
 		String fileId = uploadFileToS3(fileDTO);
+		String extension = getFileExtension(fileDTO.getMultipartFile().getOriginalFilename());
 
 		var document = toEntity(fileDTO);
 		document.setFileId(fileId);
+		document.setFileExtension(extension);
 		documentRepo.save(document);
 
 		return toDto(document);

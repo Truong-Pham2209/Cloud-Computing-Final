@@ -24,9 +24,11 @@ import com.example.service.DocumentService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @RequestMapping("/api/documents")
 @RestController
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class FileController {
@@ -58,44 +60,48 @@ public class FileController {
 
 	@GetMapping("/{id}")
 	public ResponseEntity<Object> getFile(@PathVariable("id") String id) throws IOException {
-		byte[] fileContent = service.getFile(id, false);
-		String mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+		var response = service.getFile(id, false);
 
 	    return ResponseEntity.ok()
-	            .contentType(MediaType.parseMediaType(mimeType))
-	            .body(fileContent);
+				.contentType(MediaType.parseMediaType(response.getMime()))
+	            .body(response.getData());
 	}
 
 	@GetMapping("/download/{id}")
 	public ResponseEntity<Object> downloadFile(@PathVariable("id") String id) throws IOException {
-		byte[] fileContent = service.getFile(id, false);
+		var response = service.getFile(id, false);
 		String fileName = id.substring(id.lastIndexOf("/") + 1);
 		
+		MediaType mediaType = MediaType.parseMediaType(response.getMime());
+		log.info(mediaType.toString());
+		
 		return ResponseEntity.ok()
-				.contentType(MediaType.APPLICATION_OCTET_STREAM)
+				.contentType(mediaType)
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-				.body(fileContent);
+				.body(response.getData());
 	}
 	
 	@GetMapping("/public/{id}")
 	public ResponseEntity<Object> getPublicFile(@PathVariable("id") String id) throws IOException {
-		byte[] fileContent = service.getFile(id, true);
-		String mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+		var response = service.getFile(id, true);
 
 	    return ResponseEntity.ok()
-	            .contentType(MediaType.parseMediaType(mimeType))
-	            .body(fileContent);
+				.contentType(MediaType.parseMediaType(response.getMime()))
+	            .body(response.getData());
 	}
 
 	@GetMapping("/public/download/{id}")
 	public ResponseEntity<Object> downloadPublicFile(@PathVariable("id") String id) throws IOException {
-		byte[] fileContent = service.getFile(id, true);
+		var response = service.getFile(id, true);
 		String fileName = id.substring(id.lastIndexOf("/") + 1);
 		
+		MediaType mediaType = MediaType.parseMediaType(response.getMime());
+		System.out.println(mediaType);
+		
 		return ResponseEntity.ok()
-				.contentType(MediaType.APPLICATION_OCTET_STREAM)
+				.contentType(MediaType.parseMediaType(response.getMime()))
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-				.body(fileContent);
+				.body(response.getData());
 	}
 
 	@DeleteMapping("/{id}")

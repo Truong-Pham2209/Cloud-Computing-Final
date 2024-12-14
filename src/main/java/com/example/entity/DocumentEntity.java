@@ -41,6 +41,9 @@ public class DocumentEntity {
 
 	@Column(nullable = false, unique = true)
 	String fileId;
+	
+	@Column(nullable = false)
+	String fileExtension;
 
 	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)

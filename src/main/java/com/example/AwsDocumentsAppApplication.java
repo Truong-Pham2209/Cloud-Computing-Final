@@ -51,7 +51,7 @@ public class AwsDocumentsAppApplication {
 					.username("student")
 					.password(password)
 					.phoneNumber("0123456999")
-					.role(RoleEnum.TEACHER)
+					.role(RoleEnum.STUDENT)
 					.userCode("SV001")
 					.birthday(new Date(1999, 1, 1))
 					.build();
